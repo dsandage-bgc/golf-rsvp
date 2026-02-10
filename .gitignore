@@ -1,0 +1,11 @@
+﻿# OS junk
+.DS_Store
+Thumbs.db
+
+# Node/build caches
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
