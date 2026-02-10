@@ -33,14 +33,14 @@
 
     .container{ max-width:920px; margin:40px auto; padding:28px }
 
-    .header_box{ display:flex; align-items:center; gap:16px; }
-    header{ display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:20px; text-align:left }
+    .header_box{ display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:16px; margin-bottom:20px; text-align:left }
+    header{ display:flex; flex-direction:row; align-items:flex-start; justify-content:flex-start; gap:16px; margin-bottom:20px; text-align:left }
     header .title{ flex:1 }
     h1{
-      font-size:1.8rem; margin:0; color:var(--brown);
+      font-size:1.8rem; margin:0; color:var(--green);
       letter-spacing:0.03em; text-transform:uppercase; font-weight:700;
     }
-    .sub{ color:var(--copper); font-weight:600; font-size:0.95rem; }
+    .sub{ color:var(--gold); font-weight:600; font-size:0.95rem; }
 
     .notice{
       padding:12px 14px; border-radius:8px; background:var(--white);
@@ -69,7 +69,6 @@
     /* Format panel */
     .format_panel{
       background: var(--white);
-      border: 1px solid var(--border);
       border-left: 6px solid var(--gold);
       padding: 16px;
       border-radius: 12px;
@@ -102,7 +101,7 @@
     <header class="header_box">
       <div class="brand">
         <!-- If your logo is inside static/assets, change src to "assets/logo_green.png" -->
-        <img src="../assets/logo_green.png" alt="Brookridge Golf Club logo" style="max-width:180px;height:auto;border-radius:6px">
+        <img src="../assets/logo_green.png" alt="Brookridge Golf Club logo" style="max-width:50%;height:auto;border-radius:6px">
       </div>
       <div class="title">
         <h1>AM Men’s League</h1>
@@ -117,11 +116,8 @@
       </p>
     </section>
 
-    <div id="msg" class="notice">
-      This is a preview. Accept/Decline will record once backend is connected.
-    </div>
-
     <div class="actions">
+      <h2 style="margin:0 0 8px 0;color:var(--green);font-weight:500;letter-spacing:0.03em;font-size:0.8rem;font-style: italic">Click to accept or decline</h2>
       <a id="acceptBtn" class="btn accept" href="#">Accept</a>
       <a id="declineBtn" class="btn decline" href="#">Decline</a>
     </div>
@@ -193,21 +189,27 @@
       const titleEl = document.getElementById("formatTitle");
       const descEl  = document.getElementById("formatDesc");
 
-      // Update <your-username> with your GitHub username
-      const RAW_URL = "https://raw.githubusercontent.com/<your-username>/golf-rsvp/main/static/format.json";
-      const url = `${RAW_URL}?v=${Date.now()}`; // cache-buster
+      const q = new URLSearchParams(window.location.search);
+      const formatId = q.get("formatId") || "default";
 
       try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load format.json");
-        const data = await res.json();
+        const data = await fetch("./format.json?v=" + Date.now(), { cache: "no-store" })
+          .then(r => r.json());
 
         const sanitize = (s) => String(s || "").replace(/[<>]/g, "");
 
-        if (data.title)       titleEl.textContent = sanitize(data.title);
-        if (data.description) descEl.textContent  = sanitize(data.description);
+        const f = data[formatId];
+
+        if (f) {
+          titleEl.textContent = sanitize(f.title);
+          descEl.textContent  = sanitize(f.description);
+        } else {
+          titleEl.textContent = "Format Unavailable";
+          descEl.textContent  = "This week's format has not been posted yet.";
+        }
+
       } catch (e) {
-        console.warn("Format panel fetch failed; using defaults.", e);
+        console.warn("Format load failed:", e);
       }
     })();
   </script>

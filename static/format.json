@@ -1,6 +1,46 @@
-
 {
-  "title": "Best Ball",
-  "description": "Two-man best ball. Nine holes. Please arrive 15 minutes early for tee assignments and briefings.",
-  "updatedAt": "2026-02-10T21:00:00Z"
+  "week_2026_04_01": {
+    "title": "Best Ball",
+    "description": "Two-man best ball. Each player plays their own ball. The team score is the lowest individual score on each hole."
+  },
+  "week_2026_04_08": {
+    "title": "Shamble",
+    "description": "All players tee off. The team selects the best drive, then each plays their own ball into the hole. Lowest individual score counts."
+  },
+  "week_2026_04_15": {
+    "title": "Scramble",
+    "description": "All players tee off. The team selects the best shot and all players hit from that spot until the ball is holed. One team score per hole."
+  },
+  "week_2026_04_22": {
+    "title": "Best Ball",
+    "description": "Two-man best ball. Each player plays their own ball. The team score is the lowest individual score on each hole."
+  },
+  "week_2026_04_29": {
+    "title": "Scramble",
+    "description": "All players tee off; the team selects the best shot and all players hit from that location. Repeat until holed."
+  },
+  "week_2026_05_06": {
+    "title": "Shamble",
+    "description": "All players tee off; take the best drive, then each plays their own ball until holed. Lowest individual score counts."
+  },
+  "week_2026_05_13": {
+    "title": "Modified Stableford",
+    "description": "Players earn points based on score vs. par. Highest point total wins."
+  },
+  "week_2026_05_20": {
+    "title": "Alternate Shot",
+    "description": "Players alternate shots using one ball. One tees off on odd holes, the other on even holes."
+  },
+  "week_2026_05_27": {
+    "title": "Chapman",
+    "description": "Both golfers tee off. Switch balls for second shots. Select the better ball, then alternate until holed."
+  },
+  "week_2026_06_03": {
+    "title": "Quota",
+    "description": "Players earn points based on their score relative to par. Goal is to exceed your assigned quota."
+  },
+  "week_2026_06_10": {
+    "title": "Two-Man Combined Score",
+    "description": "Both players play their own ball; the team score is the sum of the two individual scores."
+  }
 }
