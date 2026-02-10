@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Men's League RSVP • Brookridge Golf Club</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- OPTIONAL: Paste your Adobe Fonts Kit link here -->
+  <!-- <link rel="stylesheet" href="https://use.typekit.net/XXXXX.css"> -->
+
+  <style>
+    :root{
+      --brown: #331804;
+      --gold: #D7A941;
+      --green: #4F512A; /* Use #4F5120 if that was intentional */
+      --copper: #A45B28;
+      --white: #ffffff;
+      --bg-1: #ffffff;
+      --bg-2: #ffffff;
+      --border: #e6e3da;
+    }
+
+    *{ box-sizing:border-box }
+
+    body{
+      margin:0;
+      font-family: "Mundial", "Inter", "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      color:var(--brown);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{ max-width:920px; margin:40px auto; padding:28px }
+
+    .header_box{ display:flex; align-items:center; gap:16px; }
+    header{ display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:20px; text-align:left }
+    header .title{ flex:1 }
+    h1{
+      font-size:1.8rem; margin:0; color:var(--brown);
+      letter-spacing:0.03em; text-transform:uppercase; font-weight:700;
+    }
+    .sub{ color:var(--copper); font-weight:600; font-size:0.95rem; }
+
+    .notice{
+      padding:12px 14px; border-radius:8px; background:var(--white);
+      border-left:4px solid var(--green); box-shadow:0 6px 18px rgba(17,17,17,0.03); margin-bottom:16px
+    }
+    .notice.ok{ border-left-color:var(--green); background:#eef7ea }
+    .notice.err{ border-left-color:var(--copper); background:#fff4ee }
+
+    .actions{ margin:12px 0 }
+    .btn{
+      display:inline-block; padding:10px 16px; border-radius:8px; text-decoration:none; color:var(--white);
+      font-weight:700; letter-spacing:0.03em; text-transform:uppercase;
+    }
+    .btn.accept{ background:var(--green); margin-right:10px }
+    .btn.decline{ background:var(--copper) }
+    .btn.accept:hover{ filter:brightness(0.9) }
+    .btn.decline:hover{ filter:brightness(0.95) }
+
+    .panel{
+      background:var(--white); padding:16px; border-radius:12px; border:1px solid var(--border);
+      box-shadow:0 6px 12px rgba(18,18,18,0.03)
+    }
+
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px }
+
+    /* Format panel */
+    .format_panel{
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-left: 6px solid var(--gold);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgba(18,18,18,0.03);
+      margin: 12px 0 16px 0;
+    }
+    .format_panel h2{
+      margin: 0 0 6px 0;
+      color: var(--green);
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-size: 1.05rem;
+    }
+    .format_panel p{
+      margin: 6px 0 0 0; color:#4b3d2f; line-height:1.45;
+    }
+
+    ul{ margin:8px 0; padding-left:18px }
+
+    @media (max-width:700px){
+      header{ flex-direction:column; align-items:flex-start }
+      .grid{ grid-template-columns:1fr }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header class="header_box">
+      <div class="brand">
+        <!-- If your logo is inside static/assets, change src to "assets/logo_green.png" -->
+        <img src="../assets/logo_green.png" alt="Brookridge Golf Club logo" style="max-width:180px;height:auto;border-radius:6px">
+      </div>
+      <div class="title">
+        <h1>AM Men’s League</h1>
+        <div class="sub">Wednesday • 8:30 AM • 9 Holes</div>
+      </div>
+    </header>
+
+    <section class="format_panel">
+      <h2>Format: <span id="formatTitle">Best Ball</span></h2>
+      <p id="formatDesc">
+        Two-man best ball. Shotgun start at 8:30 AM. Nine holes. Please arrive 15 minutes early for tee assignments and briefings.
+      </p>
+    </section>
+
+    <div id="msg" class="notice">
+      This is a preview. Accept/Decline will record once backend is connected.
+    </div>
+
+    <div class="actions">
+      <a id="acceptBtn" class="btn accept" href="#">Accept</a>
+      <a id="declineBtn" class="btn decline" href="#">Decline</a>
+    </div>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Playing</h2>
+        <ul id="playingList"><li>Loading…</li></ul>
+      </div>
+      <div class="panel">
+        <h2>Pending</h2>
+        <ul id="pendingList"><li>Loading…</li></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // -------------------------------
+    // Mocked roster for demo
+    // -------------------------------
+    const MOCK_PLAYERS = [
+      { name: "Daniel Sandage", status: "accepted" },
+      { name: "Chris Lee", status: "accepted" },
+      { name: "Alex Johnson", status: "pending" },
+      { name: "Jordan Park", status: "pending" }
+    ];
+
+    const msgEl = document.getElementById('msg');
+    const playingEl = document.getElementById('playingList');
+    const pendingEl = document.getElementById('pendingList');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const declineBtn = document.getElementById('declineBtn');
+
+    function renderRoster(players) {
+      const playing = players.filter(p => p.status === "accepted");
+      const pending = players.filter(p => p.status === "pending");
+
+      playingEl.innerHTML = playing.length
+        ? playing.map(p => `<li>${p.name}</li>`).join("")
+        : "<li>None yet</li>";
+
+      pendingEl.innerHTML = pending.length
+        ? pending.map(p => `<li>${p.name}</li>`).join("")
+        : "<li>None pending</li>";
+    }
+
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        msgEl.className = 'notice ok';
+        msgEl.textContent = 'Accepted — backend coming soon.';
+      });
+    }
+
+    if (declineBtn) {
+      declineBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        msgEl.className = 'notice err';
+        msgEl.textContent = 'Declined — backend coming soon.';
+      });
+    }
+
+    renderRoster(MOCK_PLAYERS);
+
+    // -------------------------------
+    // Weekly Format via GitHub JSON
+    // -------------------------------
+    (async function () {
+      const titleEl = document.getElementById("formatTitle");
+      const descEl  = document.getElementById("formatDesc");
+
+      // Update <your-username> with your GitHub username
+      const RAW_URL = "https://raw.githubusercontent.com/<your-username>/golf-rsvp/main/static/format.json";
+      const url = `${RAW_URL}?v=${Date.now()}`; // cache-buster
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load format.json");
+        const data = await res.json();
+
+        const sanitize = (s) => String(s || "").replace(/[<>]/g, "");
+
+        if (data.title)       titleEl.textContent = sanitize(data.title);
+        if (data.description) descEl.textContent  = sanitize(data.description);
+      } catch (e) {
+        console.warn("Format panel fetch failed; using defaults.", e);
+      }
+    })();
+  </script>
+</body>
+</html>
