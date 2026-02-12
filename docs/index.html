@@ -238,12 +238,13 @@
       return false;
     }
 
-    const dateStr = data.event_date ? ` • ${data.event_date}` : "";
-    const teeStr  = data.tee_time ? ` • ${String(data.tee_time).slice(0,5)}` : "";
-    const headline = data.title || data.format || "League Week";
+    const headline = data.title || "AM Men's League";
+    const dateStr = data.event_date ? data.event_date : "";
+    const teeStr = data.tee_time ? String(data.tee_time).slice(0,5) : "";
+    const formatStr = data.format ? data.format : "";
 
-    formatTitleEl.textContent = sanitize(`${headline}${dateStr}${teeStr}`);
-    formatDescEl.textContent  = sanitize(data.description || data.format || "");
+    formatTitleEl.textContent = `${headline}`;
+    formatDescEl.textContent = [dateStr, teeStr, formatStr, data.description].filter(Boolean).join(" • ");
 
     // is_open default is false in your schema — only enable if true
     disableButtons(data.is_open !== true);
