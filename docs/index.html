@@ -70,22 +70,21 @@
     .format_panel{
       background: var(--white);
       border-left: 6px solid var(--gold);
-      padding: 16px;
+      padding: 18px;
       border-radius: 12px;
-      box-shadow: 0 6px 12px rgba(18,18,18,0.03);
+      box-shadow: 0 8px 20px rgba(18,18,18,0.04);
       margin: 12px 0 16px 0;
     }
-    .format_panel h2{
-      margin: 0 0 6px 0;
-      color: var(--green);
-      font-weight: 700;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      font-size: 1.05rem;
-    }
-    .format_panel p{
-      margin: 6px 0 0 0; color:#4b3d2f; line-height:1.45;
-    }
+    .format_header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px }
+    .format_header h2{ margin:0; color:var(--green); font-weight:800; letter-spacing:0.04em; text-transform:uppercase; font-size:1rem }
+    .status-pill{ padding:6px 10px; border-radius:999px; font-weight:700; font-size:0.75rem; color:var(--white); display:inline-block }
+    .status-pill.open{ background:var(--green) }
+    .status-pill.closed{ background:var(--copper) }
+
+    .format_meta{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap }
+    .badge{ background:#f6f4ef; color:#4b3d2f; padding:6px 10px; border-radius:8px; font-weight:700; font-size:0.85rem; border:1px solid var(--border) }
+
+    .format_desc{ margin:10px 0 0 0; color:#4b3d2f; line-height:1.5; font-size:0.95rem }
 
     ul{ margin:8px 0; padding-left:18px }
 
@@ -109,9 +108,19 @@
       </div>
     </header>
 
-    <section class="format_panel">
-      <h2>Format: <span id="formatTitle">Best Ball</span></h2>
-      <p id="formatDesc">
+    <section class="format_panel" aria-labelledby="formatTitleLabel">
+      <div class="format_header">
+        <h2 id="formatTitleLabel">Format: <span id="formatTitle">Best Ball</span></h2>
+        <div id="statusPill" class="status-pill closed" aria-live="polite">Closed</div>
+      </div>
+
+      <div class="format_meta" id="formatMeta">
+        <span class="badge" id="formatDate">—</span>
+        <span class="badge" id="formatTee">—</span>
+        <span class="badge" id="formatType">—</span>
+      </div>
+
+      <p id="formatDesc" class="format_desc">
         Two-man best ball. Shotgun start at 8:30 AM. Nine holes. Please arrive 15 minutes early for tee assignments and briefings.
       </p>
     </section>
@@ -176,6 +185,8 @@
 
   const formatTitleEl = document.getElementById("formatTitle");
   const formatDescEl  = document.getElementById("formatDesc");
+  const formatMetaEl   = document.getElementById("formatMeta");
+  const statusPillEl   = document.getElementById("statusPill");
 
   // =========================================================
   // 4) HELPERS
@@ -239,12 +250,39 @@
     }
 
     const headline = data.title || "AM Men's League";
-    const dateStr = data.event_date ? data.event_date : "";
+    const dateStr = data.event_date ? (() => {
+      try { return new Date(data.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); }
+      catch (e) { return String(data.event_date); }
+    })() : "";
     const teeStr = data.tee_time ? String(data.tee_time).slice(0,5) : "";
     const formatStr = data.format ? data.format : "";
 
     formatTitleEl.textContent = `${headline}`;
-    formatDescEl.textContent = [dateStr, teeStr, formatStr, data.description].filter(Boolean).join(" • ");
+
+    // meta badges (date, tee time, format)
+    if (formatMetaEl) {
+      const badges = [];
+      if (dateStr) badges.push(`<span class="badge">${sanitize(dateStr)}</span>`);
+      if (teeStr)  badges.push(`<span class="badge">${sanitize(teeStr)}</span>`);
+      if (formatStr) badges.push(`<span class="badge">${sanitize(formatStr)}</span>`);
+      formatMetaEl.innerHTML = badges.length ? badges.join(' ') : `<span class="badge">No details</span>`;
+    }
+
+    // description text
+    formatDescEl.textContent = sanitize(data.description || "");
+
+    // status pill: Open vs Closed
+    if (statusPillEl) {
+      if (data.is_open === true) {
+        statusPillEl.textContent = 'Open';
+        statusPillEl.classList.remove('closed');
+        statusPillEl.classList.add('open');
+      } else {
+        statusPillEl.textContent = 'Closed';
+        statusPillEl.classList.remove('open');
+        statusPillEl.classList.add('closed');
+      }
+    }
 
     // is_open default is false in your schema — only enable if true
     disableButtons(data.is_open !== true);
