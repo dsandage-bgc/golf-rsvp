@@ -254,7 +254,6 @@
       try { return new Date(data.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); }
       catch (e) { return String(data.event_date); }
     })() : "";
-    const teeStr = data.tee_time ? String(data.tee_time).slice(0,5) : "";
     const formatStr = data.format ? data.format : "";
 
     formatTitleEl.textContent = `${headline}`;
@@ -263,7 +262,6 @@
     if (formatMetaEl) {
       const badges = [];
       if (dateStr) badges.push(`<span class="badge">${sanitize(dateStr)}</span>`);
-      if (teeStr)  badges.push(`<span class="badge">${sanitize(teeStr)}</span>`);
       if (formatStr) badges.push(`<span class="badge">${sanitize(formatStr)}</span>`);
       formatMetaEl.innerHTML = badges.length ? badges.join(' ') : `<span class="badge">No details</span>`;
     }
@@ -274,11 +272,11 @@
     // status pill: Open vs Closed
     if (statusPillEl) {
       if (data.is_open === true) {
-        statusPillEl.textContent = 'Open';
+        statusPillEl.textContent = 'Registration Open';
         statusPillEl.classList.remove('closed');
         statusPillEl.classList.add('open');
       } else {
-        statusPillEl.textContent = 'Closed';
+        statusPillEl.textContent = 'Registration Closed';
         statusPillEl.classList.remove('open');
         statusPillEl.classList.add('closed');
       }
