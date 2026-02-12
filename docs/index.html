@@ -111,13 +111,14 @@
 
     <section class="format_panel" aria-labelledby="formatTitleLabel">
       <div class="format_header">
-        <h2 id="formatTitleLabel">Format: <span id="formatTitle">Best Ball</span></h2>
+        <h2 id="formatTitleLabel"><span id="formatTitle">Best Ball</span></h2>
         <div id="statusPill" class="status-pill closed" aria-live="polite">Closed</div>
       </div>
 
+      <div id="formatSub" class="format_sub" aria-hidden="false">Format: <strong><span id="formatType">Best Ball</span></strong></div>
+
       <div class="format_meta" id="formatMeta">
         <span class="badge" id="formatDate">—</span>
-        <span class="badge" id="formatType">—</span>
       </div>
 
       <p id="formatDesc" class="format_desc">
@@ -187,6 +188,8 @@
   const formatDescEl  = document.getElementById("formatDesc");
   const formatMetaEl   = document.getElementById("formatMeta");
   const statusPillEl   = document.getElementById("statusPill");
+  const formatTypeEl   = document.getElementById("formatType");
+  const formatSubEl    = document.getElementById("formatSub");
 
   // =========================================================
   // 4) HELPERS
@@ -258,16 +261,28 @@
 
     formatTitleEl.textContent = `${headline}`;
 
-    // meta badges (date, tee time, format)
+    // meta badges (date only)
     if (formatMetaEl) {
       const badges = [];
       if (dateStr) badges.push(`<span class="badge">${sanitize(dateStr)}</span>`);
-      if (formatStr) badges.push(`<span class="badge">${sanitize(formatStr)}</span>`);
       formatMetaEl.innerHTML = badges.length ? badges.join(' ') : `<span class="badge">No details</span>`;
     }
 
     // description text
     formatDescEl.textContent = sanitize(data.description || "");
+
+    // subheading: Format: ...
+    if (formatTypeEl && formatSubEl) {
+      if (formatStr) {
+        formatTypeEl.textContent = sanitize(formatStr);
+        formatSubEl.style.display = '';
+        formatSubEl.setAttribute('aria-hidden', 'false');
+      } else {
+        formatTypeEl.textContent = '';
+        formatSubEl.style.display = 'none';
+        formatSubEl.setAttribute('aria-hidden', 'true');
+      }
+    }
 
     // status pill: Open vs Closed
     if (statusPillEl) {
