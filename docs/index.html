@@ -138,19 +138,21 @@
     </section>
   </div>
 
-  <!-- Supabase JS (must be loaded BEFORE your app script) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase JS (must be loaded BEFORE your app script) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script>
+<script>
   // =========================================================
-  // 1) CONFIG — paste your Project URL + Publishable key here
+  // 1) CONFIG — Project URL + Publishable key
   // =========================================================
   const SUPABASE_URL = "https://qvzjziubhqckrvdmnvxo.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fpm7E0lxuiMsQf1iOgMb5w_7FW7w1r7";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+  // Use `sb` instead of `supabase` to avoid "already declared" collisions
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   // expose for console testing
-  window.sb = supabase;
+  window.sb = sb;
   console.log("Supabase client ready:", window.sb);
 
   // =========================================================
@@ -223,7 +225,7 @@
       return false;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from("events")
       .select("id, title, format, description, tee_time, event_date, is_open")
       .eq("id", Number(EVENT_ID))
@@ -256,7 +258,7 @@
     if (!EVENT_ID) return;
 
     // active players
-    const { data: players, error: pErr } = await supabase
+    const { data: players, error: pErr } = await sb
       .from("players")
       .select("id, first_name, last_name")
       .eq("active", true);
@@ -269,7 +271,7 @@
     }
 
     // RSVPs for this event
-    const { data: rsvps, error: rErr } = await supabase
+    const { data: rsvps, error: rErr } = await sb
       .from("rsvps")
       .select("player_id, status")
       .eq("event_id", Number(EVENT_ID));
@@ -310,8 +312,6 @@
 
   // =========================================================
   // 7) WRITE RSVP (UPSERT)
-  //    Requires unique constraint on (event_id, player_id) to work well:
-  //    alter table public.rsvps add constraint rsvps_event_player_unique unique (event_id, player_id);
   // =========================================================
   async function upsertRsvp(newStatus) {
     if (!EVENT_ID) return alert("Missing ?event=...");
@@ -323,7 +323,7 @@
       status: newStatus
     };
 
-    const { error } = await supabase
+    const { error } = await sb
       .from("rsvps")
       .upsert(payload, { onConflict: "event_id,player_id" });
 
@@ -356,7 +356,7 @@
     await loadAndRenderRoster();
 
     // Optional: realtime refresh for this event’s RSVPs
-    supabase
+    sb
       .channel("rsvps-live")
       .on(
         "postgres_changes",
@@ -365,8 +365,6 @@
       )
       .subscribe();
   })();
-  </script>
-
-
+</script>
 </body>
 </html>
