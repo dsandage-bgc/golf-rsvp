@@ -109,6 +109,13 @@
       </div>
     </header>
 
+    <div id="greeting" class="notice" style="display:none;">
+      Hi, <strong><span id="greetingName">Player</span></strong> 👋
+      <div style="margin-top:4px; font-size:0.9rem; color:#4b3d2f;">
+        You’re RSVP’ing as <span id="greetingId"></span>.
+      </div>
+    </div>
+
     <section class="format_panel" aria-labelledby="formatTitleLabel">
       <div class="format_header">
         <h2 id="formatTitleLabel"><span id="formatTitle">Best Ball</span></h2>
@@ -180,6 +187,10 @@
   const playingEl  = document.getElementById("playingList");
   const pendingEl  = document.getElementById("pendingList");
   const declinedEl = document.getElementById("declinedList");
+  const greetingEl = document.getElementById("greeting");
+  const greetingNameEl = document.getElementById("greetingName");
+  const greetingIdEl = document.getElementById("greetingId");
+
 
   const acceptBtn  = document.getElementById("acceptBtn");
   const declineBtn = document.getElementById("declineBtn");
@@ -227,6 +238,38 @@
     acceptBtn.style.pointerEvents = pe;
     declineBtn.style.pointerEvents = pe;
   }
+
+  async function loadPlayerGreeting() {
+  if (!PLAYER_ID) {
+    // If no player param, don't show greeting
+    if (greetingEl) greetingEl.style.display = "none";
+    return false;
+  }
+
+  const { data, error } = await sb
+      .from("players")
+      .select("first_name, last_name, id")
+      .eq("id", PLAYER_ID)
+      .single();
+
+    if (error || !data) {
+      // Fallback: show the id so they still know what the link is using
+      if (greetingEl) greetingEl.style.display = "";
+      if (greetingNameEl) greetingNameEl.textContent = "there";
+      if (greetingIdEl) greetingIdEl.textContent = PLAYER_ID;
+      return false;
+    }
+
+    const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+    const displayName = data.first_name || fullName || "there";
+
+    if (greetingEl) greetingEl.style.display = "";
+    if (greetingNameEl) greetingNameEl.textContent = sanitize(displayName);
+    if (greetingIdEl) greetingIdEl.textContent = sanitize(data.id);
+
+    return true;
+  }
+
 
   // =========================================================
   // 5) LOAD EVENT (events table)
@@ -402,6 +445,8 @@
   // 8) INIT + OPTIONAL REALTIME UPDATES
   // =========================================================
   (async function init() {
+    await loadPlayerGreeting();
+
     const ok = await loadEvent();
     if (!ok) return;
 
