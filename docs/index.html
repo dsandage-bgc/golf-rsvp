@@ -253,11 +253,11 @@
     }
 
     const headline = data.title || "AM Men's League";
+    const formatStr = data.format ? data.format : "";
     const dateStr = data.event_date ? (() => {
       try { return new Date(data.event_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); }
       catch (e) { return String(data.event_date); }
     })() : "";
-    const formatStr = data.format ? data.format : "";
 
     formatTitleEl.textContent = `${headline}`;
 
