@@ -56,15 +56,15 @@
     }
     .btn.accept{ background:var(--green); margin-right:10px }
     .btn.decline{ background:var(--copper) }
-    .btn.accept:hover{ filter:brightness(0.9) }
-    .btn.decline:hover{ filter:brightness(0.95) }
+    .btn.accept:hover{ filter:brightness(0.75) }
+    .btn.decline:hover{ filter:brightness(0.75) }
 
     .panel{
       background:var(--white); padding:16px; border-radius:12px; border:1px solid var(--border);
       box-shadow:0 6px 12px rgba(18,18,18,0.03)
     }
 
-    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px }
+    .grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:12px }
 
     /* Format panel */
     .format_panel{
@@ -117,9 +117,9 @@
     </section>
 
     <div class="actions">
-      <h2 style="margin:0 0 8px 0;color:var(--green);font-weight:500;letter-spacing:0.03em;font-size:0.8rem;font-style: italic">Click to accept or decline</h2>
-      <a id="acceptBtn" class="btn accept" href="#">Accept</a>
-      <a id="declineBtn" class="btn decline" href="#">Decline</a>
+      <h2 style="margin:0 0 8px 0;color:var(--green);font-weight:500;letter-spacing:0.03em;font-size:0.8rem;font-style: italic">Are you playing this week?</h2>
+      <a id="acceptBtn" class="btn accept" href="#">Playing</a>
+      <a id="declineBtn" class="btn decline" href="#">Not Playing</a>
     </div>
 
     <section class="grid">
@@ -131,87 +131,242 @@
         <h2>Pending</h2>
         <ul id="pendingList"><li>Loading…</li></ul>
       </div>
+      <div class="panel">
+        <h2>Not Playing</h2>
+        <ul id="declinedList"><li>Loading…</li></ul>
+      </div>
     </section>
   </div>
 
+  <!-- Supabase JS (must be loaded BEFORE your app script) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
-    // -------------------------------
-    // Mocked roster for demo
-    // -------------------------------
-    const MOCK_PLAYERS = [
-      { name: "Daniel Sandage", status: "accepted" },
-      { name: "Chris Lee", status: "accepted" },
-      { name: "Alex Johnson", status: "pending" },
-      { name: "Jordan Park", status: "pending" }
-    ];
+  // =========================================================
+  // 1) CONFIG — paste your Project URL + Publishable key here
+  // =========================================================
+  const SUPABASE_URL = "https://qvzjziubhqckrvdmnvxo.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fpm7E0lxuiMsQf1iOgMb5w_7FW7w1r7";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const msgEl = document.getElementById('msg');
-    const playingEl = document.getElementById('playingList');
-    const pendingEl = document.getElementById('pendingList');
-    const acceptBtn = document.getElementById('acceptBtn');
-    const declineBtn = document.getElementById('declineBtn');
+  // expose for console testing
+  window.sb = supabase;
+  console.log("Supabase client ready:", window.sb);
 
-    function renderRoster(players) {
-      const playing = players.filter(p => p.status === "accepted");
-      const pending = players.filter(p => p.status === "pending");
+  // =========================================================
+  // 2) URL PARAMS
+  //    Example link:
+  //    .../index.html?event=12&player=daniel_sandage
+  // =========================================================
+  const params = new URLSearchParams(window.location.search);
+  const EVENT_ID = params.get("event");     // events.id (int8)
+  const PLAYER_ID = params.get("player");   // players.id (text slug)
 
-      playingEl.innerHTML = playing.length
-        ? playing.map(p => `<li>${p.name}</li>`).join("")
-        : "<li>None yet</li>";
+  // =========================================================
+  // 3) DOM HOOKS
+  // =========================================================
+  const playingEl  = document.getElementById("playingList");
+  const pendingEl  = document.getElementById("pendingList");
+  const declinedEl = document.getElementById("declinedList");
 
-      pendingEl.innerHTML = pending.length
-        ? pending.map(p => `<li>${p.name}</li>`).join("")
-        : "<li>None pending</li>";
+  const acceptBtn  = document.getElementById("acceptBtn");
+  const declineBtn = document.getElementById("declineBtn");
+
+  const formatTitleEl = document.getElementById("formatTitle");
+  const formatDescEl  = document.getElementById("formatDesc");
+
+  // =========================================================
+  // 4) HELPERS
+  // =========================================================
+  function sanitize(str) {
+    return String(str ?? "").replace(/[<>]/g, "");
+  }
+
+  function renderList(el, list, emptyText) {
+    el.innerHTML = list.length
+      ? list.map(p => `<li>${sanitize(p.first_name)} ${sanitize(p.last_name)}</li>`).join("")
+      : `<li>${emptyText}</li>`;
+  }
+
+  function sortByName(list) {
+    return list.sort((a, b) => {
+      const an = `${a.last_name ?? ""} ${a.first_name ?? ""}`.trim();
+      const bn = `${b.last_name ?? ""} ${b.first_name ?? ""}`.trim();
+      return an.localeCompare(bn);
+    });
+  }
+
+  function setActive(status) {
+    acceptBtn.classList.remove("active");
+    declineBtn.classList.remove("active");
+    if (status === "playing") acceptBtn.classList.add("active");
+    if (status === "not_playing") declineBtn.classList.add("active");
+  }
+
+  function disableButtons(disabled) {
+    const opacity = disabled ? 0.5 : 1;
+    const pe = disabled ? "none" : "auto";
+    acceptBtn.style.opacity = opacity;
+    declineBtn.style.opacity = opacity;
+    acceptBtn.style.pointerEvents = pe;
+    declineBtn.style.pointerEvents = pe;
+  }
+
+  // =========================================================
+  // 5) LOAD EVENT (events table)
+  // =========================================================
+  async function loadEvent() {
+    if (!EVENT_ID) {
+      formatTitleEl.textContent = "Missing event";
+      formatDescEl.textContent = "Add ?event=EVENT_ID to the URL.";
+      disableButtons(true);
+      return false;
     }
 
-    if (acceptBtn) {
-      acceptBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        msgEl.className = 'notice ok';
-        msgEl.textContent = 'Accepted — backend coming soon.';
-      });
+    const { data, error } = await supabase
+      .from("events")
+      .select("id, title, format, description, tee_time, event_date, is_open")
+      .eq("id", Number(EVENT_ID))
+      .single();
+
+    if (error || !data) {
+      formatTitleEl.textContent = "Event not found";
+      formatDescEl.textContent = sanitize(error?.message || "Unknown error");
+      disableButtons(true);
+      return false;
     }
 
-    if (declineBtn) {
-      declineBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        msgEl.className = 'notice err';
-        msgEl.textContent = 'Declined — backend coming soon.';
-      });
+    const dateStr = data.event_date ? ` • ${data.event_date}` : "";
+    const teeStr  = data.tee_time ? ` • ${String(data.tee_time).slice(0,5)}` : "";
+    const headline = data.title || data.format || "League Week";
+
+    formatTitleEl.textContent = sanitize(`${headline}${dateStr}${teeStr}`);
+    formatDescEl.textContent  = sanitize(data.description || data.format || "");
+
+    // is_open default is false in your schema — only enable if true
+    disableButtons(data.is_open !== true);
+
+    return true;
+  }
+
+  // =========================================================
+  // 6) LOAD ROSTER + RSVPS AND RENDER 3 LISTS
+  // =========================================================
+  async function loadAndRenderRoster() {
+    if (!EVENT_ID) return;
+
+    // active players
+    const { data: players, error: pErr } = await supabase
+      .from("players")
+      .select("id, first_name, last_name")
+      .eq("active", true);
+
+    if (pErr) {
+      playingEl.innerHTML = `<li>${sanitize(pErr.message)}</li>`;
+      pendingEl.innerHTML = `<li>—</li>`;
+      declinedEl.innerHTML = `<li>—</li>`;
+      return;
     }
 
-    renderRoster(MOCK_PLAYERS);
+    // RSVPs for this event
+    const { data: rsvps, error: rErr } = await supabase
+      .from("rsvps")
+      .select("player_id, status")
+      .eq("event_id", Number(EVENT_ID));
 
-    // -------------------------------
-    // Weekly Format via GitHub JSON
-    // -------------------------------
-    (async function () {
-      const titleEl = document.getElementById("formatTitle");
-      const descEl  = document.getElementById("formatDesc");
+    if (rErr) {
+      playingEl.innerHTML = `<li>${sanitize(rErr.message)}</li>`;
+      pendingEl.innerHTML = `<li>—</li>`;
+      declinedEl.innerHTML = `<li>—</li>`;
+      return;
+    }
 
-      const q = new URLSearchParams(window.location.search);
-      const formatId = q.get("formatId") || "default";
+    // map player_id -> status
+    const statusByPlayer = new Map();
+    for (const r of (rsvps || [])) statusByPlayer.set(r.player_id, r.status);
 
-      try {
-        const data = await fetch("./format.json?v=" + Date.now(), { cache: "no-store" })
-          .then(r => r.json());
+    const playing = [];
+    const notPlaying = [];
+    const pending = [];
 
-        const sanitize = (s) => String(s || "").replace(/[<>]/g, "");
+    for (const pl of (players || [])) {
+      const status = statusByPlayer.get(pl.id);
 
-        const f = data[formatId];
+      if (status === "playing") playing.push(pl);
+      else if (status === "not_playing") notPlaying.push(pl);
+      else pending.push(pl); // includes missing row OR status='pending'
+    }
 
-        if (f) {
-          titleEl.textContent = sanitize(f.title);
-          descEl.textContent  = sanitize(f.description);
-        } else {
-          titleEl.textContent = "Format Unavailable";
-          descEl.textContent  = "This week's format has not been posted yet.";
-        }
+    renderList(playingEl,  sortByName(playing),    "None playing yet");
+    renderList(pendingEl,  sortByName(pending),    "No one pending");
+    renderList(declinedEl, sortByName(notPlaying), "No declines");
 
-      } catch (e) {
-        console.warn("Format load failed:", e);
-      }
-    })();
+    // highlight current player's status (if present)
+    if (PLAYER_ID) {
+      const myStatus = statusByPlayer.get(PLAYER_ID);
+      if (myStatus) setActive(myStatus);
+    }
+  }
+
+  // =========================================================
+  // 7) WRITE RSVP (UPSERT)
+  //    Requires unique constraint on (event_id, player_id) to work well:
+  //    alter table public.rsvps add constraint rsvps_event_player_unique unique (event_id, player_id);
+  // =========================================================
+  async function upsertRsvp(newStatus) {
+    if (!EVENT_ID) return alert("Missing ?event=...");
+    if (!PLAYER_ID) return alert("Missing ?player=... (send a personalized link or add a dropdown)");
+
+    const payload = {
+      event_id: Number(EVENT_ID),
+      player_id: PLAYER_ID,
+      status: newStatus
+    };
+
+    const { error } = await supabase
+      .from("rsvps")
+      .upsert(payload, { onConflict: "event_id,player_id" });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setActive(newStatus);
+    await loadAndRenderRoster();
+  }
+
+  acceptBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    upsertRsvp("playing");
+  });
+
+  declineBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    upsertRsvp("not_playing");
+  });
+
+  // =========================================================
+  // 8) INIT + OPTIONAL REALTIME UPDATES
+  // =========================================================
+  (async function init() {
+    const ok = await loadEvent();
+    if (!ok) return;
+
+    await loadAndRenderRoster();
+
+    // Optional: realtime refresh for this event’s RSVPs
+    supabase
+      .channel("rsvps-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${EVENT_ID}` },
+        () => loadAndRenderRoster()
+      )
+      .subscribe();
+  })();
   </script>
+
+
 </body>
 </html>
