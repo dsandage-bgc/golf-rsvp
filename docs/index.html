@@ -264,8 +264,8 @@
     const displayName = data.first_name || fullName || "there";
 
     if (greetingEl) greetingEl.style.display = "";
-    if (greetingNameEl) greetingNameEl.textContent = sanitize(fullName);
-    if (greetingIdEl) greetingIdEl.textContent = sanitize(data.id);
+    if (greetingNameEl) greetingNameEl.textContent = sanitize(displayName);
+    if (greetingIdEl) greetingIdEl.textContent = sanitize(fullName);
 
     return true;
   }
